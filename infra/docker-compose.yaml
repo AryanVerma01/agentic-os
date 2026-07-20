@@ -41,9 +41,19 @@ services:
       - neo4j_data:/data
       - neo4j_logs:/logs
 
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000" # API port
+      - "9001:9001" # Web UI port
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
 
 volumes:
   pg_data:
   qdrant_storage:
   neo4j_data:
   neo4j_logs:
+  minio_data:

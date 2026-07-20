@@ -12,3 +12,9 @@ export type SSEEventType = keyof SSEEventMap;
 export const SendMessageSchema = z.object({
     content: z.string().min(1)
 })
+
+export const PresignRequestSchema = z.object({
+    fileName: z.string(),
+    ContentType: z.string(),
+    size: z.number()
+})

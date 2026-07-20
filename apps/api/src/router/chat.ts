@@ -4,6 +4,7 @@ export const chatRouter = Router();
 import { SendMessageSchema } from "@agentic-os/shared-types/SendMessageSchema"
 import { graph } from "../langgraph/agent";
 import { HumanMessage } from "@langchain/core/messages";
+import { uploadRouter } from "./upload";
 
 // streamRegistry stores connected client response object (SSE stream)
 const streamRegistry = new Map();
@@ -11,6 +12,7 @@ const streamRegistry = new Map();
 //     "sessionId": res
 // }]
 
+chatRouter.use("/:sessionId/uploads", uploadRouter);  // /chat/:sessionId/uploads
 
 function sendSSE(res: Response, event: string, data: any) {
     res.write(`event: ${event}\ndata:${JSON.stringify(data)}\n\n`)
@@ -64,9 +66,20 @@ chatRouter.post('/:sessionId/messages', async (req: Request, res: Response) => {
         return res.status(400).json(parsed.error)
     }
 
-    const userMessage = new HumanMessage(parsed.data.content)
 
-    // Update Redis Hsitory
+    // Clear previous attechemnts before clicking send
+    const pendingRaw = await redis.lRange(`sessionId${sessionId}:pending_attachments`, 0, -1);
+    await redis.del(`sessionId${sessionId}:pending_attachments`)
+
+    const attachments = pendingRaw.map((a) => JSON.parse(a))
+
+    const userMessage = {
+        role: 'user',
+        content: parsed.data.content,
+        attachments
+    }
+
+    // Update Redis History
 
     const rawHistory = await redis.hGet(`session:${sessionId}`, "messages");
     const messages = rawHistory ? JSON.parse(rawHistory) : [];            // convert messages into an array

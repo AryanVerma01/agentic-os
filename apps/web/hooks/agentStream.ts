@@ -1,9 +1,15 @@
 // NEXT_PUBLIC_* env vars are automatically available in the browser via Next.js
 import { useEffect, useState } from "react";
 
+export interface Attachment {
+    type: "image" | "audio" | "file";
+    url?: string;
+}
+
 export interface Message {
     role: "user" | "agent";
     content: string;
+    attachments?: Attachment[];
 }
 
 export function useAgentStream(sessionId: string) {
@@ -61,7 +67,7 @@ export function useAgentStream(sessionId: string) {
         })
 
         if (!res.ok) {
-            if (res.status === 429) alert("Rate Limit execedded: ")
+            if (res.status === 429) alert("Rate Limit execedded")
             else alert("Failed to send message")
         }
     }

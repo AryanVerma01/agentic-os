@@ -4,7 +4,8 @@
   "description": "",
   "exports": {
     "./SSEEventType": "./types.ts",
-    "./SendMessageSchema": "./types.ts"
+    "./SendMessageSchema": "./types.ts",
+    "./presignRequestSchema": "./types.ts"
   },
   "main": "index.js",
   "scripts": {
