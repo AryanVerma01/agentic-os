@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: devpass
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis_cache
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  qdrant:
+    image: qdrant/qdrant
+    container_name: qdrant_vector
+    ports:
+      - "6333:6333"
+      - "6334:6334" # Recommended: exposes gRPC port alongside REST API
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    restart: unless-stopped
+    
+  neo4j:
+    image: neo4j:5-enterprise
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH: neo4j/devpassword
+      NEO4J_ACCEPT_LICENSE_AGREEMENT: "yes"
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+
+
+volumes:
+  pg_data:
+  qdrant_storage:
+  neo4j_data:
+  neo4j_logs:
