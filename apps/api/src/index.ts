@@ -3,12 +3,14 @@ import cors from "cors"
 import { chatRouter } from "./router/chat"
 import { redis } from "./redis"
 import "dotenv/config"
+import { conversationRouter } from "./router/conversation"
 
 const app = express()
 app.use(cors({ origin: process.env.FRONTEND_URL || "http://localhost:3000" }))
 app.use(express.json())
 
 app.use('/chat', chatRouter)
+app.use('/conversation', conversationRouter);
 
 async function startRedis() {
     await redis.connect()

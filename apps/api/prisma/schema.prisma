@@ -1,0 +1,33 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Conversation {
+  id          String   @id @default(uuid())
+  user_id     String
+  title       String   @default("New Conversation") @db.VarChar(255)
+  share_token String   @unique
+  archived    Boolean  @default(false)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  messages Message[]
+}
+
+model Message {
+  id                String   @id @default(uuid())
+  conversation_id   String
+  parent_message_id String
+  role              String   @db.VarChar(50)
+  content           Json
+  created_at        DateTime @default(now())
+
+  ParentMessage Message?     @relation("ParentMessage", fields: [parent_message_id], references: [id], onDelete: Cascade)
+  replies       Message[]    @relation("ParentMessage")
+  Conversation  Conversation @relation(fields: [conversation_id], references: [id])
+}
