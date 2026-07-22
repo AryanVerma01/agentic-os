@@ -1,76 +1,83 @@
-// NEXT_PUBLIC_* env vars are automatically available in the browser via Next.js
-import { useEffect, useState } from "react";
-
-export interface Attachment {
-    type: "image" | "audio" | "file";
-    url?: string;
-}
+// apps/web/hooks/useAgentStream.ts
+import { useEffect, useState, useCallback } from "react";
+import { v4 as uuidv4 } from "uuid"; // Make sure to import this for optimistic UI
 
 export interface Message {
-    role: "user" | "agent";
+    id: string;
+    role: "user" | "agent" | "system" | string;
     content: string;
-    attachments?: Attachment[];
+    parentId?: string | null;
 }
 
 export function useAgentStream(sessionId: string) {
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [isStreaming, setIsStreaming] = useState(false);
 
-    const [messages, setMessages] = useState<Message[]>([]);    // {role : string, content : string}
-    const [isstreaming, setIsstreaming] = useState(false);
-
-    // Set up SSE connection
     useEffect(() => {
+        if (!sessionId) return;
         const url = `${process.env.NEXT_PUBLIC_API_URL}/chat/${sessionId}/stream`;
-        const es = new EventSource(url)
+        const es = new EventSource(url);
 
         es.addEventListener("history", (e) => {
-            const data = JSON.parse(e.data)   // data converted from string to array
-            setMessages(data.messages)
-        })
+            const data = JSON.parse(e.data);
+            setMessages(data.messages);
+        });
 
         es.addEventListener("token", (e) => {
-            const data = JSON.parse(e.data)
-            setIsstreaming(true)
+            const data = JSON.parse(e.data); // data has { text, messageId } from Step 1.6
+            setIsStreaming(true);
 
             setMessages((prev) => {
-                const allMessages = [...prev]      // array of all messages
-                const lastMessage = allMessages[allMessages.length - 1]
+                const newMessages = [...prev];
+                const lastMsg = newMessages[newMessages.length - 1];
 
-                if (lastMessage && lastMessage.role === "agent") {
-                    lastMessage.content += data.text   // if message exist append new token to content 
+                if (lastMsg && lastMsg.role === "agent") {
+                    lastMsg.content += data.text;
+                } else {
+                    // Store the agent's message ID provided by the backend
+                    newMessages.push({ id: data.messageId, role: "agent", content: data.text, parentId: null });
                 }
-                else {
-                    allMessages.push({ role: "agent", content: data.text }) // if it is first token create new message
+                return newMessages;
+            });
+        });
+
+        es.addEventListener("done", () => setIsStreaming(false));
+
+        return () => es.close();
+    }, [sessionId]);
+
+    // Update this function signature to accept parentId
+    const sendMessage = useCallback(
+        async (content: string, parentId?: string | null) => {
+
+            // Optimistic UI update (needs a temporary ID to render in the tree)
+            setMessages((prev) => [
+                ...prev,
+                {
+                    id: uuidv4(),
+                    role: "user",
+                    content,
+                    parentId: parentId || null
                 }
+            ]);
 
-                return allMessages;
-            })
-        })
+            const res = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/chat/${sessionId}/messages`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    // Include parent_message_id in the payload sent to Express!
+                    body: JSON.stringify({ content, parent_message_id: parentId || null }),
+                }
+            );
 
-        es.addEventListener("done", () => {
-            setIsstreaming(false)
-        })
+            if (!res.ok) {
+                if (res.status === 429) alert("Rate limit exceeded!");
+                else alert("Failed to send message");
+            }
+        },
+        [sessionId]
+    );
 
-        return () => {
-            es.close()
-        }
-    }, [sessionId])
-
-    // send prompt to backend
-    const sendMessage = async (content: string, parent_message_id: string) => {
-
-        setMessages((prev) => [...prev, { role: 'user', content: content }])
-
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat/${sessionId}/messages`, {
-            method: 'POST',
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ content, parent_message_id })
-        })
-
-        if (!res.ok) {
-            if (res.status === 429) alert("Rate Limit execedded")
-            else alert("Failed to send message")
-        }
-    }
-
-    return { messages, sendMessage, isstreaming }   // agent streaming hook (function) return all messages , sendMessage , isstreaming
+    return { messages, sendMessage, isStreaming };
 }

@@ -1,6 +1,5 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -22,7 +21,7 @@ model Conversation {
 model Message {
   id                String   @id @default(uuid())
   conversation_id   String
-  parent_message_id String
+  parent_message_id String?
   role              String   @db.VarChar(50)
   content           Json
   created_at        DateTime @default(now())

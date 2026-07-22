@@ -57,6 +57,9 @@ conversationRouter.post('/:id/share', async (req: Request, res: Response) => {
             }
         })
 
+        if (!conv) {
+            return res.status(404).json({ error: "Conversation not found" });
+        }
 
         if (!conv.share_token) {
             const token = crypto.randomUUID();
@@ -94,6 +97,10 @@ conversationRouter.get('/share/:token', async (req: Request, res: Response) => {
                 share_token: JSON.stringify(token)
             }
         })
+
+        if (!conv) {
+            return res.status(404).json({ error: "Conversation not found" });
+        }
 
         const messages = await prisma.message.findMany({
             where: {

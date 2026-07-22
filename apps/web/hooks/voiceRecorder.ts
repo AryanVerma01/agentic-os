@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { file } from "zod";
 
-export default function useVoiceRecorder() {
+export function useVoiceRecorder() {
 
     const [isRecording, setIsRecording] = useState(false)
     const mediaRecorderRef = useRef<MediaRecorder>(null)

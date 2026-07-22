@@ -1,7 +1,7 @@
 import { useState } from "react"
 import "dotenv/config"
 
-export default function useFileUpload(sessionId: string) {
+export function useFileUpload(sessionId: string) {
 
     const [fileUploading, setIsFileUploading] = useState(false)
 
