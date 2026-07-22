@@ -5,6 +5,7 @@ import { SendMessageSchema } from "@agentic-os/shared-types/SendMessageSchema"
 import { graph } from "../langgraph/agent";
 import { HumanMessage } from "@langchain/core/messages";
 import { uploadRouter } from "./upload";
+import { prisma } from "../db";
 
 // streamRegistry stores connected client response object (SSE stream)
 const streamRegistry = new Map();
@@ -79,12 +80,37 @@ chatRouter.post('/:sessionId/messages', async (req: Request, res: Response) => {
         attachments
     }
 
-    // Update Redis History
+    const conv = await prisma.conversation.findFirst({
+        where: {
+            id: JSON.stringify(sessionId)
+        }
+    })
 
+    if (!conv) {
+        await prisma.conversation.create({
+            data: {
+                id: JSON.stringify(sessionId),
+                user_id: 'mock-user-1'
+            }
+        })
+    }
+
+
+    // Update Redis History   
     const rawHistory = await redis.hGet(`session:${sessionId}`, "messages");
     const messages = rawHistory ? JSON.parse(rawHistory) : [];            // convert messages into an array
 
     messages.push(userMessage)
+
+    // Store message in userMsg Postgres
+    await prisma.message.create({
+        data: {
+            conversation_id: JSON.stringify(sessionId),
+            role: 'user',
+            content: parsed.data.content,
+            parent_message_id: parsed.data.parent_message_id
+        }
+    })
 
     await redis.hSet(`session:${sessionId}`, "messages", JSON.stringify(messages));
     await redis.expire(`session:${sessionId}`, 86400)   // (24 hrs) Redis InMemory is cleared
@@ -119,10 +145,20 @@ chatRouter.post('/:sessionId/messages', async (req: Request, res: Response) => {
 
     sendSSE(clientres, "done", { status: "success" })
 
+
     // Store agent message in redis
     const currentHistory = await redis.hGet(`session:${sessionId}`, "messages");
     const msgs = currentHistory ? JSON.parse(currentHistory) : [];
     msgs.push(agentMessage)
     await redis.hSet(`session:${sessionId}`, "messages", JSON.stringify(msgs))
 
+    // Store message AgentMsg in Postgres
+    await prisma.message.create({
+        data: {
+            conversation_id: JSON.stringify(sessionId),
+            role: 'agent',
+            content: agentMessage.content,
+            parent_message_id: parsed.data.parent_message_id
+        }
+    })
 })

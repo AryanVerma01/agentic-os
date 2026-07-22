@@ -11,7 +11,7 @@ model Conversation {
   id          String   @id @default(uuid())
   user_id     String
   title       String   @default("New Conversation") @db.VarChar(255)
-  share_token String   @unique
+  share_token String?  @unique
   archived    Boolean  @default(false)
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt

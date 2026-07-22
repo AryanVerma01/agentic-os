@@ -10,7 +10,8 @@ export type SSEEventMap = {
 export type SSEEventType = keyof SSEEventMap;
 
 export const SendMessageSchema = z.object({
-    content: z.string().min(1)
+    content: z.string().min(1),
+    parent_message_id: z.string()
 })
 
 export const PresignRequestSchema = z.object({

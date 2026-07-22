@@ -56,14 +56,14 @@ export function useAgentStream(sessionId: string) {
     }, [sessionId])
 
     // send prompt to backend
-    const sendMessage = async (content: string) => {
+    const sendMessage = async (content: string, parent_message_id: string) => {
 
         setMessages((prev) => [...prev, { role: 'user', content: content }])
 
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat/${sessionId}/messages`, {
             method: 'POST',
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ content })
+            body: JSON.stringify({ content, parent_message_id })
         })
 
         if (!res.ok) {
