@@ -5,6 +5,7 @@ import { ChatGoogleGenerativeAI } from "@langchain/google-genai"
 import { ConditionalEdgeRouter, END, GraphNode, MessagesValue, ReducedValue, START, StateGraph, StateSchema } from "@langchain/langgraph"
 import { tavily } from "@tavily/core"
 import "dotenv/config"
+import { SYSTEM_PROMPT } from "./prompt"
 
 const tvly = tavily({ apiKey: process.env.TAVILY_API_KEY })
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY
@@ -69,7 +70,7 @@ const MessageState = new StateSchema({
 // Model Node 
 const llmCall: GraphNode<typeof MessageState> = async (state) => {
     const res = await modelwithTools.invoke([
-        new SystemMessage("You are a helpful assistant"),
+        new SystemMessage(SYSTEM_PROMPT.text),
         ...state.messages
     ])
 

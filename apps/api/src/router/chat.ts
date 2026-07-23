@@ -2,10 +2,9 @@ import { Router, Request, Response } from "express";
 import { checkRateLimit, redis } from "../redis";
 export const chatRouter = Router();
 import { SendMessageSchema } from "@agentic-os/shared-types/SendMessageSchema"
-import { graph } from "../langgraph/agent";
-import { HumanMessage } from "@langchain/core/messages";
 import { uploadRouter } from "./upload";
 import { prisma } from "../db";
+import { graph } from "../langgraph/graph";
 
 // streamRegistry stores connected client response object (SSE stream)
 const streamRegistry = new Map();
