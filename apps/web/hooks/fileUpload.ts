@@ -11,9 +11,9 @@ export function useFileUpload(sessionId: string) {
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat/${sessionId}/uploads/presign`, {
                 method: 'POST',
-                headers: { "Content-type": "application/json" },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    filename: file.name,
+                    fileName: file.name,
                     contentType: file.type,
                     size: file.size
                 })
@@ -32,13 +32,15 @@ export function useFileUpload(sessionId: string) {
 
             // Upload file on put url 
             const putres = await fetch(url, {
-                method: 'POST',
-                headers: { "Content-type": file.type },
+                method: 'PUT',
+                headers: { "Content-Type": file.type },
                 body: file
             })
 
             if (!putres.ok) {
-                throw new Error(`Failed to upload to storage`)
+                const errText = await putres.text().catch(() => "")
+                console.error(`Storage upload failed with status ${putres.status}:`, errText)
+                throw new Error(`Failed to upload to storage: ${putres.status}`)
             }
 
             await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat/${sessionId}/uploads/${encodeURIComponent(key)}/complete`, {

@@ -47,7 +47,8 @@ chatRouter.get("/:sessionId/stream", async (req: Request, res: Response) => {
 // This Endpoint recieves prompt from user(frontend) send it to agent and stream the output to frontend via SSE and store the messages history in redis
 chatRouter.post('/:sessionId/messages', async (req: Request, res: Response) => {
 
-    const { sessionId } = req.params
+    const rawSessionId = req.params.sessionId;
+    const sessionId = Array.isArray(rawSessionId) ? rawSessionId[0] : (rawSessionId || "");
     const ip = req.ip || "unknown"
 
     // Rate Limiting Max 10 messages per minute
@@ -67,9 +68,9 @@ chatRouter.post('/:sessionId/messages', async (req: Request, res: Response) => {
     }
 
 
-    // Clear previous attechemnts before clicking send
-    const pendingRaw = await redis.lRange(`sessionId${sessionId}:pending_attachments`, 0, -1);
-    await redis.del(`sessionId${sessionId}:pending_attachments`)
+    // Clear previous attachments before clicking send
+    const pendingRaw = await redis.lRange(`sessionId:${sessionId}:pending_attachments`, 0, -1);
+    await redis.del(`sessionId:${sessionId}:pending_attachments`)
 
     const attachments = pendingRaw.map((a) => JSON.parse(a))
 
@@ -81,14 +82,14 @@ chatRouter.post('/:sessionId/messages', async (req: Request, res: Response) => {
 
     const conv = await prisma.conversation.findFirst({
         where: {
-            id: JSON.stringify(sessionId)
+            id: sessionId
         }
     })
 
     if (!conv) {
         await prisma.conversation.create({
             data: {
-                id: JSON.stringify(sessionId),
+                id: sessionId,
                 user_id: 'mock-user-1'
             }
         })
@@ -104,11 +105,11 @@ chatRouter.post('/:sessionId/messages', async (req: Request, res: Response) => {
     // Store message in userMsg Postgres
     await prisma.message.create({
         data: {
-            conversation_id: JSON.stringify(sessionId),
+            conversation_id: sessionId,
             role: 'user',
             content: parsed.data.content,
-            parent_message_id: parsed.data.parent_message_id
-        }
+            parent_message_id: parsed.data.parent_message_id || undefined
+        } as any
     })
 
     await redis.hSet(`session:${sessionId}`, "messages", JSON.stringify(messages));
@@ -154,10 +155,10 @@ chatRouter.post('/:sessionId/messages', async (req: Request, res: Response) => {
     // Store message AgentMsg in Postgres
     await prisma.message.create({
         data: {
-            conversation_id: JSON.stringify(sessionId),
+            conversation_id: sessionId,
             role: 'agent',
             content: agentMessage.content,
-            parent_message_id: parsed.data.parent_message_id
-        }
+            parent_message_id: parsed.data.parent_message_id || undefined
+        } as any
     })
 })

@@ -15,7 +15,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/conversation`)
             .then((res) => res.json())
             .then((data) => {
-                if (Array.isArray(data)) setConvos(data);
+                setConvos(data);
             })
             .catch((err) => console.error("Failed to load conversations", err));
     }, []);

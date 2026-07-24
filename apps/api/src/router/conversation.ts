@@ -27,13 +27,14 @@ conversationRouter.get('/', async (req: Request, res: Response) => {
 // All messages of a conversation
 conversationRouter.get('/:id/messages', async (req: Request, res: Response) => {
     try {
-        const id = req.params.id
+        const rawId = req.params.id;
+        const id = Array.isArray(rawId) ? rawId[0] : (rawId || "");
 
         if (!id) return res.json({ error: `ConversationID is missing` })
 
         const messages = await prisma.message.findMany({
             where: {
-                conversation_id: JSON.stringify(id)
+                conversation_id: id
             }
         })
 
@@ -47,13 +48,14 @@ conversationRouter.get('/:id/messages', async (req: Request, res: Response) => {
 // Generate Share URL 
 conversationRouter.post('/:id/share', async (req: Request, res: Response) => {
 
-    const id = req.params.id;
+    const rawId = req.params.id;
+    const id = Array.isArray(rawId) ? rawId[0] : (rawId || "");
     if (!id) return res.json({ error: `ConversationID is missing` })
 
     try {
         const conv = await prisma.conversation.findFirst({
             where: {
-                id: JSON.stringify(id)
+                id: id
             }
         })
 
@@ -66,7 +68,7 @@ conversationRouter.post('/:id/share', async (req: Request, res: Response) => {
 
             await prisma.conversation.update({
                 where: {
-                    id: JSON.stringify(id)
+                    id: id
                 },
                 data: {
                     share_token: token
@@ -87,14 +89,15 @@ conversationRouter.post('/:id/share', async (req: Request, res: Response) => {
 
 conversationRouter.get('/share/:token', async (req: Request, res: Response) => {
 
-    const token = req.params.token
+    const rawToken = req.params.token;
+    const token = Array.isArray(rawToken) ? rawToken[0] : (rawToken || "");
 
     if (!token) return res.json({ error: 'Token is missing' })
 
     try {
         const conv = await prisma.conversation.findFirst({
             where: {
-                share_token: JSON.stringify(token)
+                share_token: token
             }
         })
 

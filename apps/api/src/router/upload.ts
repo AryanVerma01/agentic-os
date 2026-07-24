@@ -1,16 +1,19 @@
 import { Router } from "express";
-export const uploadRouter = Router();
+export const uploadRouter = Router({ mergeParams: true });
 import { Request, Response } from "express";
 import { checkRateLimit, redis } from "../redis";
 import { PresignRequestSchema } from "@agentic-os/shared-types/presignRequestSchema";
-import { BUCKET_NAME, getPresignedPut, s3Client } from "../s3";
-import { HeadObjectCommand } from "@aws-sdk/client-s3";
+import { BUCKET_NAME, generatePresignedGet, getPresignedPut, s3Client } from "../s3";
+import { GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import { getDocumentProxy, extractText } from "unpdf"
+import { storeDocinVectorDB } from "../rag/ingest";
 
 
 // /upload/presign return presigned PUT url to client (Client upload to this url)
 uploadRouter.post('/presign', async (req: Request, res: Response) => {
 
-    const { sessionId } = req.params;
+    const rawSessionId = req.params.sessionId;
+    const sessionId = Array.isArray(rawSessionId) ? rawSessionId[0] : (rawSessionId || "");
     const ip = req.ip;
     const allowed = await checkRateLimit(`ip:${ip}:upload`, 10, 60_000)       // 10 Request per minute
 
@@ -26,59 +29,78 @@ uploadRouter.post('/presign', async (req: Request, res: Response) => {
         return res.status(400).json(parsed.error)
     }
 
-    const { fileName, ContentType, size } = parsed.data;
+    const { fileName, contentType, size } = parsed.data;
 
     if (size > 10 * 1024 * 1024) {
         return res.status(413).json({ error: "File too large" })
     }
 
     const key = `${sessionId}/${crypto.randomUUID()}-${fileName}`
-    const url = await getPresignedPut(key, ContentType);
+    const url = await getPresignedPut(key, contentType);
 
     res.json({ url, key })
 })
 
-// Client tells that upload is complete - sends key to get GET url
+// Client tells that upload is comple and perform particular action with particular type of data
 uploadRouter.post("/:key/complete", async (req: Request, res: Response) => {
-    const { sessionId, key } = req.params;
-    const ip = req.ip;
+    const rawSessionId = req.params.sessionId;
+    const sessionId = Array.isArray(rawSessionId) ? rawSessionId[0] : (rawSessionId || "");
+    const rawKey = req.params.key;
+    const key = Array.isArray(rawKey) ? rawKey[0] : rawKey;
 
     if (!key) return res.json({ error: 'key is not present' })
 
 
     try {
         // Check File exist in S3
-        const head = await s3Client.send(new HeadObjectCommand({ Bucket: BUCKET_NAME, Key: JSON.stringify(key) }))        // Finds the object in S3 
+        const head = await s3Client.send(new HeadObjectCommand({ Bucket: BUCKET_NAME, Key: key }))        // Finds the object in S3 
         const contentType = head.ContentType || "application/octet-stream"
 
         if (contentType.startsWith("image/")) {
-            const attachment = { type: 'image', key, name: JSON.stringify(key).split('-').pop() }
-
+            const attachment = { type: 'image', key, name: key.split('-').pop() }
             await redis.rPush(`sessionId:${sessionId}:pending_attachments`, JSON.stringify(attachment));
+            return res.status(200).json({ success: true, attachment });
         }
         else if (contentType.startsWith('audio/')) {
-            // // 2. VOICE: Transcribe immediately, then trigger the agent loop as if user typed it
-            // const transcript = await mockTranscribeAudio(key);
-            // const attachment: Attachment = { type: "audio", key };
-
-            // // Force trigger the chat loop (simulating a user POSTing a message)
-            // await triggerAgentLoop(sessionId, transcript, [attachment]);
-            // res.sendStatus(202);
-
+            const attachment = { type: 'audio', key, name: key.split('-').pop() }
+            await redis.rPush(`sessionId:${sessionId}:pending_attachments`, JSON.stringify(attachment));
+            return res.status(200).json({ success: true, attachment });
         }
         else if (contentType === "application/pdf" || contentType.includes('document')) {
-            // RAG Integration
+            const command = new GetObjectCommand({ Bucket: BUCKET_NAME, Key: key })
+            const s3Res = await s3Client.send(command);
 
-            // await mockEnqueueRAGingest();
-            // res.json({ message: "Document queued for processing" })
+            const pdfBuffer: any = await streamToBuffer(s3Res.Body);
+            const uint8Array = new Uint8Array(pdfBuffer);
+            const pdfproxy = await getDocumentProxy(uint8Array);
+            const parsedData = await extractText(pdfproxy, { mergePages: true });
+
+            await storeDocinVectorDB(sessionId || "", parsedData.text, key);
+            console.log(`PDF Stored in RAG for session ${sessionId}`);
+
+            const attachment = { type: 'document', key, name: key.split('-').pop() };
+            await redis.rPush(`sessionId:${sessionId}:pending_attachments`, JSON.stringify(attachment));
+
+            return res.status(200).json({ success: true, textLength: extractedText.length, attachment });
         }
         else {
-            res.status(400).json({
+            return res.status(400).json({
                 error: "Unsupported File type"
             })
         }
     }
-    catch (err) {
-        res.status(404).json({ error: `File not found in storage` })
+    catch (err: any) {
+        console.error("Error in upload complete:", err);
+        return res.status(500).json({ error: `Failed to process uploaded file`, message: err?.message || String(err) })
     }
-})  
+})
+
+
+async function streamToBuffer(stream: any) {
+    return new Promise((resolve, reject) => {
+        const chunks: any = []
+        stream.on("data", (chunk: any) => chunks.push(chunk))
+        stream.on("error", reject)
+        stream.on("end", () => resolve(Buffer.concat(chunks)))     // Buffer.concat converts list to buffer
+    })
+}

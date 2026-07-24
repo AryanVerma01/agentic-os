@@ -11,7 +11,7 @@ const tvly = tavily({ apiKey: process.env.TAVILY_API_KEY })
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY
 
 const model = new ChatGoogleGenerativeAI({
-    model: 'gemini-3.5-flash',
+    model: 'gemini-3.6-flash',
     apiKey: GOOGLE_API_KEY
 })
 

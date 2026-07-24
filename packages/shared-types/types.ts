@@ -16,6 +16,6 @@ export const SendMessageSchema = z.object({
 
 export const PresignRequestSchema = z.object({
     fileName: z.string(),
-    ContentType: z.string(),
+    contentType: z.string(),
     size: z.number()
 })
