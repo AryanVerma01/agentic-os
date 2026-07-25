@@ -6,6 +6,9 @@ import { ConditionalEdgeRouter, END, GraphNode, MessagesValue, ReducedValue, STA
 import { tavily } from "@tavily/core"
 import "dotenv/config"
 import { SYSTEM_PROMPT } from "./prompt"
+import crypto from "crypto"
+import { redis } from "../redis"
+import { getVectorStore } from "../rag/store"
 
 const tvly = tavily({ apiKey: process.env.TAVILY_API_KEY })
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY
@@ -49,10 +52,54 @@ const web_search = tool(async ({ query }) => {   // was `(query: string)` — sc
 })
 
 
+const ragSearchTool = tool(async ({ query, sessionId }) => {
+    // Check Redis Cache for same query result 
+    const queryHash = crypto.createHash("sha256").update(query.toLowerCase()).digest("hex");
+    const cacheKey = `ragcache:${sessionId}:${queryHash}`
+
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+        console.log(`[RAG Cache Hit]: ${query}`)
+        return cached
+    }
+
+    const vectorDB = await getVectorStore();
+    const result = await vectorDB.similaritySearch(query, 4, {
+        must: [
+            {
+                key: "sessionId",
+                match: {
+                    value: sessionId      // It search oonly chunks with user's session-ID
+                }
+            }
+        ]
+    })
+
+    if (result.length === 0) {
+        return "No relevant Document found in this conversation's upload"
+    }
+
+    // Combine Text in result 
+    const combinedText = result.map((r, i) => `[Doc ${i + 1}]: ${r.pageContent}`).join("\n\n")
+
+    await redis.set(cacheKey, combinedText, { EX: 1800 })      // Save the query and result in redis Cache for 30 min
+
+    return combinedText
+
+}, {
+    name: "rag_search",
+    description: "Search through the PDFs and documents the user has uploaded in this specific session",
+    schema: z.object({
+        query: z.string().describe("Search query"),
+        sessionId: z.string().describe("current Session ID")
+    })
+})
+
 const toolByName: Record<string, any> = {
     [add.name]: add,
     [multiply.name]: multiply,
-    [web_search.name]: web_search
+    [web_search.name]: web_search,
+    [ragSearchTool.name]: ragSearchTool
 }
 
 const tools = Object.values(toolByName)

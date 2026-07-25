@@ -3,7 +3,7 @@ export const uploadRouter = Router({ mergeParams: true });
 import { Request, Response } from "express";
 import { checkRateLimit, redis } from "../redis";
 import { PresignRequestSchema } from "@agentic-os/shared-types/presignRequestSchema";
-import { BUCKET_NAME, generatePresignedGet, getPresignedPut, s3Client } from "../s3";
+import { BUCKET_NAME, getPresignedPut, s3Client } from "../s3";
 import { GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { getDocumentProxy, extractText } from "unpdf"
 import { storeDocinVectorDB } from "../rag/ingest";
@@ -81,7 +81,7 @@ uploadRouter.post("/:key/complete", async (req: Request, res: Response) => {
             const attachment = { type: 'document', key, name: key.split('-').pop() };
             await redis.rPush(`sessionId:${sessionId}:pending_attachments`, JSON.stringify(attachment));
 
-            return res.status(200).json({ success: true, textLength: extractedText.length, attachment });
+            return res.status(200).json({ success: true, textLength: extractText.length, attachment });
         }
         else {
             return res.status(400).json({
