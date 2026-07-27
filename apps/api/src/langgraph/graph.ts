@@ -3,14 +3,13 @@ import { tool } from "@langchain/core/tools"
 import { z } from "zod"
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai"
 import { ConditionalEdgeRouter, END, GraphNode, MessagesValue, ReducedValue, START, StateGraph, StateSchema } from "@langchain/langgraph"
-import { tavily } from "@tavily/core"
 import "dotenv/config"
 import { SYSTEM_PROMPT } from "./prompt"
 import crypto from "crypto"
 import { redis } from "../redis"
 import { getVectorStore } from "../rag/store"
+import { web_search } from "./tools/websearch"
 
-const tvly = tavily({ apiKey: process.env.TAVILY_API_KEY })
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY
 
 const model = new ChatGoogleGenerativeAI({
@@ -39,18 +38,6 @@ const multiply = tool(({ a, b }) => {
         b: z.number().describe("Second Number")
     })
 })
-
-const web_search = tool(async ({ query }) => {   // was `(query: string)` — schema says it's an object
-    const result = await tvly.search(query)
-    return JSON.stringify(result)   // was not returning result — model never saw search output
-}, {
-    name: "web_search",
-    description: "Search the Web",
-    schema: z.object({
-        query: z.string().describe("Query")
-    })
-})
-
 
 const ragSearchTool = tool(async ({ query, sessionId }) => {
     // Check Redis Cache for same query result 
