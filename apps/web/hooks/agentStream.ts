@@ -12,6 +12,7 @@ export interface Message {
 export function useAgentStream(sessionId: string) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isStreaming, setIsStreaming] = useState(false);
+    const [terminalOutput, setTerminalOutput] = useState(false)
 
     useEffect(() => {
         if (!sessionId) return;
@@ -40,6 +41,12 @@ export function useAgentStream(sessionId: string) {
                 return newMessages;
             });
         });
+
+        es.addEventListener('workspace', (e) => {
+            const data = JSON.parse(e.data)
+
+            setTerminalOutput((prev) => prev + data)
+        })
 
         es.addEventListener("done", () => setIsStreaming(false));
 
@@ -79,5 +86,5 @@ export function useAgentStream(sessionId: string) {
         [sessionId]
     );
 
-    return { messages, sendMessage, isStreaming };
+    return { messages, sendMessage, isStreaming, terminalOutput };
 }

@@ -19,7 +19,7 @@ export function withResilience(name: string, fn: any, options: any) {
     breaker.on("close", () => console.log(`[BREAKER CLOSE] ${name} has recovered`));
     breaker.on("reject", () => console.warn(`[BREAKER/BULKHEAD REJECT] ${name} call rejected`));
 
-
+    // return a function executes breaker function
     return async function (...args: any[]) {
 
         const maxtries = options.maxRetries ?? 2;

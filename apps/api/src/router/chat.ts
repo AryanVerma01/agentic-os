@@ -7,14 +7,14 @@ import { prisma } from "../db";
 import { graph } from "../langgraph/graph";
 
 // streamRegistry stores connected client response object (SSE stream)
-const streamRegistry = new Map();
+export const streamRegistry = new Map();
 // streamRegistry = [{
 //     "sessionId": res
 // }]
 
 chatRouter.use("/:sessionId/uploads", uploadRouter);  // /chat/:sessionId/uploads
 
-function sendSSE(res: Response, event: string, data: any) {
+export function sendSSE(res: Response, event: string, data: any) {
     res.write(`event: ${event}\ndata:${JSON.stringify(data)}\n\n`)
 }
 

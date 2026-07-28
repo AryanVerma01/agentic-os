@@ -10,10 +10,12 @@
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
+    "@types/dockerode": "^4.0.1",
     "@types/dotenv": "^6.1.1",
     "@types/express": "^5.0.6",
     "@types/opossum": "^8.1.9",
     "@types/uuid": "^10.0.0",
+    "dockerode": "^5.0.1",
     "opossum": "^10.0.0",
     "prettier": "^3.7.4",
     "turbo": "^2.10.5",
