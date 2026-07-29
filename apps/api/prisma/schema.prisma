@@ -30,3 +30,10 @@ model Message {
   replies       Message[]    @relation("ParentMessage")
   Conversation  Conversation @relation(fields: [conversation_id], references: [id])
 }
+
+model UserPreferences {
+  user_id              String   @id @db.VarChar(255)
+  general_instructions String?  @db.Text
+  theme                String   @default("light")
+  updated_at           DateTime @default(now())
+}

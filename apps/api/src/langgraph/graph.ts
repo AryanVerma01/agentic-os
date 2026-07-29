@@ -8,6 +8,7 @@ import { web_search } from "./tools/websearch"
 import { fileSystemTool } from "./tools/filesystem"
 import { codeExecTool } from "./tools/os-tools"
 import { ragSearchTool } from "./tools/ragsearch"
+import { saveMemoryTool, searchMemoryTool } from "./tools/memorytool"
 
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY
 
@@ -21,7 +22,9 @@ const toolByName: Record<string, any> = {
     [web_search.name]: web_search,
     [ragSearchTool.name]: ragSearchTool,
     [fileSystemTool.name]: fileSystemTool,
-    [codeExecTool.name]: codeExecTool
+    [codeExecTool.name]: codeExecTool,
+    [saveMemoryTool.name]: saveMemoryTool,
+    [searchMemoryTool.name]: searchMemoryTool
 }
 
 const tools = Object.values(toolByName)
