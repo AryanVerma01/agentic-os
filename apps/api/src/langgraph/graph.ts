@@ -3,12 +3,13 @@ import { z } from "zod"
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai"
 import { ConditionalEdgeRouter, END, GraphNode, MessagesValue, ReducedValue, START, StateGraph, StateSchema } from "@langchain/langgraph"
 import "dotenv/config"
-import { SYSTEM_PROMPT } from "./prompt"
+import { dynamicSystemPrompt, SYSTEM_PROMPT } from "./prompt"
 import { web_search } from "./tools/websearch"
 import { fileSystemTool } from "./tools/filesystem"
 import { codeExecTool } from "./tools/os-tools"
 import { ragSearchTool } from "./tools/ragsearch"
 import { saveMemoryTool, searchMemoryTool } from "./tools/memorytool"
+import { prisma } from "../db"
 
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY
 
@@ -41,8 +42,20 @@ const MessageState = new StateSchema({
 
 // Model Node 
 const llmCall: GraphNode<typeof MessageState> = async (state) => {
+
+    const PreferencesResult = await prisma.userPreferences.findMany({
+        where: {
+            user_id: "mock-user-1"
+        }
+    })
+
+    //@ts-ignore
+    const userPreferences = PreferencesResult.general_instructions || 'no special instruction'
+
+    const dynamicSystemPrompt = `${SYSTEM_PROMPT.text}\n\nUSER PREFERENCES: \n ${userPreferences}`
+
     const res = await modelwithTools.invoke([
-        new SystemMessage(SYSTEM_PROMPT.text),
+        new SystemMessage(dynamicSystemPrompt),
         ...state.messages
     ])
 

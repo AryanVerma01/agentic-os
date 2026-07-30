@@ -5,6 +5,7 @@ import { redis } from "./redis"
 import "dotenv/config"
 import { conversationRouter } from "./router/conversation"
 import { initS3Bucket } from "./s3"
+import { settingsRouter } from "./router/settings"
 
 const app = express()
 app.use(cors({ origin: process.env.FRONTEND_URL || true }))
@@ -12,6 +13,7 @@ app.use(express.json())
 
 app.use('/chat', chatRouter)
 app.use('/conversation', conversationRouter);
+app.use('/settings', settingsRouter);
 
 async function startRedis() {
     await redis.connect()
