@@ -15,12 +15,14 @@
     "@types/express": "^5.0.6",
     "@types/opossum": "^8.1.9",
     "@types/uuid": "^10.0.0",
+    "@types/web-push": "^3.6.4",
     "dockerode": "^5.0.1",
     "opossum": "^10.0.0",
     "prettier": "^3.7.4",
     "turbo": "^2.10.5",
     "typescript": "5.9.2",
-    "uuid": "^14.0.1"
+    "uuid": "^14.0.1",
+    "web-push": "^3.6.7"
   },
   "engines": {
     "node": ">=18"

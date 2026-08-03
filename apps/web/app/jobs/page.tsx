@@ -1,6 +1,7 @@
 // apps/web/app/jobs/page.tsx
 "use client";
 
+import { usePushNotifications } from "../../hooks/usePushNotification"
 import { useState, useEffect } from "react";
 
 type Job = {
@@ -16,6 +17,7 @@ export default function JobsPage() {
     const [jobs, setJobs] = useState<Job[]>([]);
     const [prompt, setPrompt] = useState("");
     const [requiresApproval, setRequiresApproval] = useState(false);
+    const { isSubscribed, subscribe } = usePushNotifications();
 
     // Poll for updates every 3 seconds (Simple alternative to SSE for jobs)
     useEffect(() => {
@@ -48,6 +50,12 @@ export default function JobsPage() {
     return (
         <div className="max-w-5xl mx-auto p-8">
             <h1 className="text-3xl font-bold text-gray-800 mb-8">Autonomous Jobs (Temporal)</h1>
+
+            {!isSubscribed && (
+                <button onClick={subscribe} className="bg-purple-100 text-purple-700 px-4 py-2 rounded font-semibold hover:bg-purple-200 transition">
+                    🔔 Enable Push Alerts
+                </button>
+            )}
 
             {/* Schedule Form */}
             <form onSubmit={handleSchedule} className="bg-white p-6 rounded-xl shadow-sm border mb-8 flex gap-4 items-end">
@@ -91,9 +99,9 @@ export default function JobsPage() {
                                 <td className="p-4 font-medium max-w-xs truncate">{job.task_prompt}</td>
                                 <td className="p-4">
                                     <span className={`px-2 py-1 rounded text-xs font-bold ${job.status === "WAITING_APPROVAL" ? "bg-yellow-100 text-yellow-800" :
-                                            job.status === "COMPLETED" ? "bg-green-100 text-green-800" :
-                                                job.status === "RUNNING" ? "bg-blue-100 text-blue-800 animate-pulse" :
-                                                    "bg-gray-100 text-gray-800"
+                                        job.status === "COMPLETED" ? "bg-green-100 text-green-800" :
+                                            job.status === "RUNNING" ? "bg-blue-100 text-blue-800 animate-pulse" :
+                                                "bg-gray-100 text-gray-800"
                                         }`}>
                                         {job.status}
                                     </span>

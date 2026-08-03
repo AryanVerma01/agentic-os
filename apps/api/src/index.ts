@@ -7,6 +7,7 @@ import { conversationRouter } from "./router/conversation"
 import { initS3Bucket } from "./s3"
 import { settingsRouter } from "./router/settings"
 import { startTemporal } from "./temporal/worker"
+import { notificationRouter } from "./router/notification"
 
 const app = express()
 app.use(cors({ origin: process.env.FRONTEND_URL || true }))
@@ -15,6 +16,7 @@ app.use(express.json())
 app.use('/chat', chatRouter)
 app.use('/conversation', conversationRouter);
 app.use('/settings', settingsRouter);
+app.use('/notification', notificationRouter)
 
 async function main() {
     await redis.connect()
