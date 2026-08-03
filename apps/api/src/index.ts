@@ -6,6 +6,7 @@ import "dotenv/config"
 import { conversationRouter } from "./router/conversation"
 import { initS3Bucket } from "./s3"
 import { settingsRouter } from "./router/settings"
+import { startTemporal } from "./temporal/worker"
 
 const app = express()
 app.use(cors({ origin: process.env.FRONTEND_URL || true }))
@@ -15,14 +16,10 @@ app.use('/chat', chatRouter)
 app.use('/conversation', conversationRouter);
 app.use('/settings', settingsRouter);
 
-async function startRedis() {
-    await redis.connect()
-    console.log(`Redis Connected`)
-}
-
 async function main() {
-    await startRedis()
+    await redis.connect()
     await initS3Bucket()
+    await startTemporal()
     app.listen(4000, () => {
         console.log("Express Server Running at port:4000")
     })

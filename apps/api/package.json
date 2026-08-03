@@ -20,6 +20,10 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.0",
     "@prisma/client": "^7.9.0",
+    "@temporalio/activity": "^1.21.1",
+    "@temporalio/client": "^1.21.1",
+    "@temporalio/worker": "^1.21.1",
+    "@temporalio/workflow": "^1.21.1",
     "neo4j-driver": "^6.2.0"
   }
 }

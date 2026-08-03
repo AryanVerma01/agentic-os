@@ -37,3 +37,13 @@ model UserPreferences {
   theme                String   @default("light")
   updated_at           DateTime @default(now())
 }
+
+model Jobs {
+  id                String   @id @default(uuid())
+  task_prompt       String
+  result            String?
+  status            String   @default("PENDING") // PENDING COMPLETED RUNNING APPROVAL FAILED WAITING
+  requires_approval Boolean  @default(false)
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+}
